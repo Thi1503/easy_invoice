@@ -47,6 +47,7 @@ class BottomButton extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12.sp,
                 fontWeight: FontWeight.w600,
+                height: 16.sp / 12.sp,
                 color: Colors.black,
               ),
               textAlign: TextAlign.center, // cho chắc chắn căn giữa

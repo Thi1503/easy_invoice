@@ -192,21 +192,6 @@ class _LogInState extends State<LogIn> {
                                         ),
                                       ),
                                     ),
-                                  if (!isTaxIdError)
-                                    Padding(
-                                      padding: EdgeInsets.only(top: 4.h),
-                                      child: Align(
-                                        alignment: Alignment.centerRight,
-                                        child: Text(
-                                          '',
-                                          style: TextStyle(
-                                            color: Color(0xFFFF0000),
-                                            fontWeight: FontWeight.w400,
-                                            fontSize: 12.sp,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
                                 ],
                               ),
                             ),
@@ -282,22 +267,6 @@ class _LogInState extends State<LogIn> {
                                         alignment: Alignment.centerRight,
                                         child: Text(
                                           'Tài khoản không được để trống',
-                                          style: TextStyle(
-                                            color: Color(0xFFFF0000),
-                                            fontWeight: FontWeight.w400,
-                                            fontSize: 12.sp,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-
-                                  if (!isUsernameError)
-                                    Padding(
-                                      padding: EdgeInsets.only(top: 4.h),
-                                      child: Align(
-                                        alignment: Alignment.centerRight,
-                                        child: Text(
-                                          '',
                                           style: TextStyle(
                                             color: Color(0xFFFF0000),
                                             fontWeight: FontWeight.w400,
@@ -390,22 +359,6 @@ class _LogInState extends State<LogIn> {
                                         alignment: Alignment.centerRight,
                                         child: Text(
                                           'Mật khẩu phải từ 8 đến 50 ký tự',
-                                          style: TextStyle(
-                                            color: Color(0xFFFF0000),
-                                            fontWeight: FontWeight.w400,
-                                            fontSize: 12.sp,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-
-                                  if (!isPasswordError)
-                                    Padding(
-                                      padding: EdgeInsets.only(top: 4.h),
-                                      child: Align(
-                                        alignment: Alignment.centerRight,
-                                        child: Text(
-                                          '',
                                           style: TextStyle(
                                             color: Color(0xFFFF0000),
                                             fontWeight: FontWeight.w400,
