@@ -33,6 +33,7 @@ class _LogInState extends State<LogIn> {
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  bool isValidInput = false;
   bool isTaxIdError = false;
   bool isUsernameError = false;
   bool isPasswordError = false;
@@ -46,6 +47,9 @@ class _LogInState extends State<LogIn> {
 
   void submitForm() {
     bool isValid = _formKey.currentState!.validate(); // validate toàn bộ form
+    setState(() {
+      isValidInput = true; // cập nhật trạng thái isValidInput
+    });
 
     setState(() {
       isTaxIdError = taxIdController.text.trim().isEmpty;
@@ -173,6 +177,13 @@ class _LogInState extends State<LogIn> {
                                       }
                                       return null;
                                     },
+
+                                    onChanged: (value) {
+                                      setState(() {
+                                        if (isValidInput)
+                                          isTaxIdError = value.trim().isEmpty;
+                                      });
+                                    },
                                     onSaved: (value) {
                                       taxIdController.text = value!;
                                     },
@@ -255,6 +266,15 @@ class _LogInState extends State<LogIn> {
                                       }
                                       return null;
                                     },
+
+                                    onChanged: (value) {
+                                      setState(() {
+                                        if (isValidInput)
+                                          isUsernameError =
+                                              value.trim().isEmpty;
+                                      });
+                                    },
+
                                     onSaved: (value) {
                                       usernameController.text = value!;
                                     },
@@ -347,6 +367,16 @@ class _LogInState extends State<LogIn> {
                                       }
                                       return null; // Không lỗi// hợp lệ thì không lỗi
                                     },
+                                    onChanged: (value) {
+                                      setState(() {
+                                        if (isValidInput)
+                                          isPasswordError =
+                                              value.trim().isEmpty ||
+                                              value.trim().length < 8 ||
+                                              value.trim().length > 50;
+                                      });
+                                    },
+
                                     onSaved: (value) {
                                       passwordController.text = value!;
                                     },
@@ -377,6 +407,7 @@ class _LogInState extends State<LogIn> {
                               height: 54.h,
                               child: ElevatedButton(
                                 onPressed: submitForm,
+
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Color(
                                     0xFFF24E1E,
