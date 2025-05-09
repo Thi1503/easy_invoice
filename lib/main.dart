@@ -140,12 +140,15 @@ class _LogInState extends State<LogIn> {
                     children: [
                       SizedBox(height: 76.h), // Khoảng cách trên cùng
                       // Logo
-                      SizedBox(
-                        height: 37.h,
-                        width: 158.w,
-                        child: SvgPicture.asset(
-                          AppImages.logo.path,
-                          fit: BoxFit.contain,
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: SizedBox(
+                          height: 37.h,
+                          width: 158.w,
+                          child: SvgPicture.asset(
+                            AppImages.logo.path,
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                       SizedBox(height: 24.h),
@@ -217,7 +220,7 @@ class _LogInState extends State<LogIn> {
                               controller: passwordController,
                               hintText: 'Mật khẩu',
                               isError: isPasswordError,
-                              errorMessage: 'Mật khẩu phải từ 8 đến 50 ký tự',
+                              errorMessage: 'Mật khẩu phải từ 6 đến 50 ký tự',
                               obscureText: isObscure,
                               suffixIcon: IconButton(
                                 icon: isObscure ? eyeSlash : eye,

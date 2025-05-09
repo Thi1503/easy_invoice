@@ -25,33 +25,37 @@ class BottomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: SvgPicture.asset(
-        imagePath,
-        width: 24.w, // kích thước icon theo tỉ lệ màn hình
-        height: 24.w,
-        fit: BoxFit.cover,
-      ),
-      label: Padding(
-        padding: EdgeInsets.only(left: 4.w), // khoảng cách icon - text
-        child: Text(
-          text,
-          style: TextStyle(
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w600,
-            height: 16.sp / 12.sp,
-            color: Colors.black,
-          ),
-          textAlign: TextAlign.center,
+    return SizedBox(
+      height: 54.h, // chiều cao cố định
+      width: 109.w, // chiều rộng cố định
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: SvgPicture.asset(
+          imagePath,
+          width: 24.w, // kích thước icon theo tỉ lệ màn hình
+          height: 24.w,
+          fit: BoxFit.cover,
         ),
-      ),
-      style: OutlinedButton.styleFrom(
-        minimumSize: Size(0, 54.h), // cố định chiều cao, width hug content
-        padding: EdgeInsets.symmetric(horizontal: 12.w),
-        side: BorderSide(color: Color(0xFFEBECED)),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(6.r), // bo góc 6
+        label: Padding(
+          padding: EdgeInsets.only(left: 4.w), // khoảng cách icon - text
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w600,
+              height: 16.sp / 12.sp,
+              color: Colors.black,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          // minimumSize: Size(10, 54.h), // cố định chiều cao, width hug content
+          padding: EdgeInsets.symmetric(horizontal: 12.w),
+          side: BorderSide(color: Color(0xFFEBECED)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(6.r), // bo góc 6
+          ),
         ),
       ),
     );

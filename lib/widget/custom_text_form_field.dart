@@ -36,45 +36,51 @@ class CustomTextFormField extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextCustom(text: label), // Hiển thị label
-          TextFormField(
-            controller: controller,
-            obscureText: obscureText,
-            decoration: InputDecoration(
-              hintText: hintText,
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6.r),
-                borderSide: BorderSide(color: Color(0xFFEBECED), width: 1),
+          Flexible(flex: 1, child: TextCustom(text: label)), // Hiển thị label
+          Flexible(
+            flex: 2,
+            child: TextFormField(
+              controller: controller,
+              obscureText: obscureText,
+              decoration: InputDecoration(
+                hintText: hintText,
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6.r),
+                  borderSide: BorderSide(color: Color(0xFFEBECED), width: 1),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6.r),
+                  borderSide: BorderSide(color: Color(0xFFF24E1E), width: 2),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6.r),
+                  borderSide: BorderSide(color: Colors.red, width: 1),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6.r),
+                  borderSide: BorderSide(color: Colors.red, width: 2),
+                ),
+                suffixIcon: suffixIcon,
               ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6.r),
-                borderSide: BorderSide(color: Color(0xFFF24E1E), width: 2),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6.r),
-                borderSide: BorderSide(color: Colors.red, width: 1),
-              ),
-              focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6.r),
-                borderSide: BorderSide(color: Colors.red, width: 2),
-              ),
-              suffixIcon: suffixIcon,
+              validator: validator,
+              onChanged: onChanged,
+              onSaved: onSaved,
             ),
-            validator: validator,
-            onChanged: onChanged,
-            onSaved: onSaved,
           ),
           if (isError) // Hiển thị text lỗi khi cờ isError = true
-            Padding(
-              padding: EdgeInsets.only(top: 4.h),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  errorMessage,
-                  style: TextStyle(
-                    color: Color(0xFFFF0000),
-                    fontWeight: FontWeight.w400,
-                    fontSize: 12.sp,
+            Flexible(
+              flex: 1,
+              child: Padding(
+                padding: EdgeInsets.only(top: 4.h),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    errorMessage,
+                    style: TextStyle(
+                      color: Color(0xFFFF0000),
+                      fontWeight: FontWeight.w400,
+                      fontSize: 12.sp,
+                    ),
                   ),
                 ),
               ),
