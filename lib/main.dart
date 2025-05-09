@@ -1,28 +1,39 @@
+import 'package:easy_invoice/home.dart';
+import 'package:easy_invoice/service/auth_service.dart';
+import 'package:easy_invoice/service/auth_storage.dart';
 import 'package:easy_invoice/widget/bottom_button.dart';
-import 'package:easy_invoice/widget/text_custom.dart';
+import 'package:easy_invoice/widget/custom_text_form_field.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart'; // nhớ import!
-import 'images.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart'; // Thư viện để responsive theo kích thước màn hình
+import 'package:flutter_svg/svg.dart';
+import 'package:http/http.dart' as http;
+import 'app_images.dart'; // Enum chứa đường dẫn asset ảnh
 import 'package:google_fonts/google_fonts.dart';
 
+/// Điểm khởi đầu của ứng dụng
 void main() {
   runApp(
     ScreenUtilInit(
-      designSize: Size(375, 812),
-      minTextAdapt: true,
+      designSize: Size(375, 812), // Kích thước thiết kế Figma/iPhone
+      minTextAdapt: true, // Tự động điều chỉnh cỡ chữ
       builder: (context, child) {
         return MaterialApp(
           title: 'Log In',
-          theme: ThemeData(textTheme: GoogleFonts.nunitoSansTextTheme()),
-          home: const LogIn(), // <-- home ở đây
+          theme: ThemeData(
+            textTheme: GoogleFonts.nunitoSansTextTheme(), // Font mặc định
+          ),
+          home: const LogIn(), // Màn hình đăng nhập
         );
       },
     ),
   );
 }
 
+/// Widget tái sử dụng cho ô input có label, hint, validation và icon
+
+/// Màn hình đăng nhập chính
 class LogIn extends StatefulWidget {
-  const LogIn({super.key});
+  const LogIn({Key? key}) : super(key: key);
 
   @override
   State<LogIn> createState() => _LogInState();
@@ -33,401 +44,234 @@ class _LogInState extends State<LogIn> {
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  bool isValidInput = false;
-  bool isTaxIdError = false;
-  bool isUsernameError = false;
-  bool isPasswordError = false;
-  bool isObscure = true;
-  Image eye = Image.asset(Images.eye.path, width: 24.w, height: 24.w);
-  Image eyeSplash = Image.asset(
-    Images.eyeSplash.path,
-    width: 24.w,
-    height: 24.w,
-  );
 
-  void submitForm() {
-    bool isValid = _formKey.currentState!.validate(); // validate toàn bộ form
-    setState(() {
-      isValidInput = true; // cập nhật trạng thái isValidInput
-    });
+  bool isValidInput = false; // Cờ đã submit form
+  bool isTaxIdError = false; // Lỗi mã thuế
+  bool isUsernameError = false; // Lỗi tài khoản
+  bool isPasswordError = false; // Lỗi mật khẩu
+  bool isObscure = true; // Ẩn hiện mật khẩu
 
+  bool isLoading = false; // Cờ đang tải dữ liệu
+  late final SvgPicture eye; // Biểu tượng mắt mở
+  late final SvgPicture eyeSlash; // Biểu tượng mắt gạch
+
+  @override
+  void initState() {
+    super.initState();
+    eye = SvgPicture.asset(AppImages.eye.path, width: 24.w, height: 24.w);
+    eyeSlash = SvgPicture.asset(
+      AppImages.eyeSlash.path,
+      width: 24.w,
+      height: 24.w,
+    );
+  }
+
+  /// Xử lý khi nhấn nút Đăng nhập
+  Future<void> submitForm() async {
+    try {
+      final ping = await http.get(Uri.parse('https://google.com'));
+      debugPrint('Ping google: ${ping.statusCode}');
+    } catch (e) {
+      debugPrint('Lỗi ping: $e');
+    }
+
+    // validate như trước
+    final isValid = _formKey.currentState!.validate();
+    setState(() => isValidInput = true);
     setState(() {
       isTaxIdError = taxIdController.text.trim().isEmpty;
       isUsernameError = usernameController.text.trim().isEmpty;
-      isPasswordError =
-          passwordController.text.trim().isEmpty ||
-          passwordController.text.trim().length < 8 ||
-          passwordController.text.trim().length > 50;
+      final pwd = passwordController.text.trim();
+      // do api có 6 ký tự passowrd
+      isPasswordError = pwd.isEmpty || pwd.length < 6 || pwd.length > 50;
     });
+    if (!isValid || isTaxIdError || isUsernameError || isPasswordError) return;
 
-    if (isValid && !isTaxIdError && !isUsernameError && !isPasswordError) {
-      // Nếu form hợp lệ và không lỗi
-      print(taxIdController.text);
-      print(usernameController.text);
-      print(passwordController.text);
+    setState(() => isLoading = true);
+    try {
+      final result = await AuthService.login(
+        taxCode: taxIdController.text.trim(),
+        username: usernameController.text.trim(),
+        password: passwordController.text.trim(),
+      );
 
-      // Thực hiện đăng nhập hoặc điều hướng tiếp
-    } else {
-      // Nếu form không hợp lệ, show lỗi custom
-      print("Vui lòng kiểm tra lại thông tin đăng nhập.");
+      if (result['success'] == true) {
+        // Lấy token từ data
+        final token =
+            (result['data'] as Map<String, dynamic>)['token'] as String;
+
+        // Lưu token
+        await AuthStorage.saveToken(token);
+
+        // Chuyển screen
+        Navigator.push(
+          // ignore: use_build_context_synchronously
+          context,
+          MaterialPageRoute(builder: (ctx) => const Home()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message'] ?? 'Đăng nhập thất bại')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Lỗi mạng hoặc server')));
+    } finally {
+      setState(() => isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFFFFFFF),
-      resizeToAvoidBottomInset: false,
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: false, // Không bị đẩy khi bàn phím hiện
       body: SafeArea(
         child: Column(
           children: [
             Expanded(
               child: SingleChildScrollView(
                 child: Padding(
-                  padding: EdgeInsets.only(left: 16.w, right: 16.w),
+                  padding: EdgeInsets.symmetric(horizontal: 16.w),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 76.0),
-                        child: SizedBox(
-                          height: 37.h,
-                          width: 158.w,
-                          child: Image.asset(
-                            Images.logo.path,
-                            fit: BoxFit.contain,
-                          ),
+                      SizedBox(height: 76.h), // Khoảng cách trên cùng
+                      // Logo
+                      SizedBox(
+                        height: 37.h,
+                        width: 158.w,
+                        child: SvgPicture.asset(
+                          AppImages.logo.path,
+                          fit: BoxFit.contain,
                         ),
                       ),
                       SizedBox(height: 24.h),
+
+                      // Form nhập liệu
                       Form(
                         key: _formKey,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SizedBox(
-                              height: 106.h,
-                              width: 343.w,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  TextCustom(text: "Mã số thuế"),
-
-                                  TextFormField(
-                                    controller: taxIdController,
-                                    decoration: InputDecoration(
-                                      hintText: 'Mã số thuế',
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          6.r,
-                                        ),
-                                        borderSide: BorderSide(
-                                          color: Color(0xFFEBECED),
-                                          width: 1,
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          6.r,
-                                        ),
-                                        borderSide: BorderSide(
-                                          color: Color(
-                                            0xFFF24E1E,
-                                          ), // màu viền khi focus (nhập vào)
-                                          width: 2,
-                                        ),
-                                      ),
-                                      errorBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          6.r,
-                                        ),
-                                        borderSide: BorderSide(
-                                          color: Colors.red,
-                                          width: 1,
-                                        ), // bo góc luôn, không underline
-                                      ),
-                                      focusedErrorBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          6.r,
-                                        ),
-                                        borderSide: BorderSide(
-                                          color: Colors.red,
-                                          width: 2,
-                                        ),
-                                      ),
-                                      suffixIcon: IconButton(
-                                        icon: Image.asset(
-                                          Images.closeCircle.path,
-                                          width: 24.w, // hoặc size bạn cần
-                                          height: 24.w,
-                                        ),
-                                        onPressed: () {
-                                          taxIdController
-                                              .clear(); // Xóa nội dung nhập
-                                          setState(
-                                            () {},
-                                          ); // Nếu muốn cập nhật giao diện ngay
-                                        },
-                                      ),
-                                    ),
-                                    validator: (value) {
-                                      if (value == null ||
-                                          value.trim().isEmpty) {
-                                        return null; //  trả về chuỗi rỗng để Flutter không tự show lỗi
-                                      }
-                                      return null;
-                                    },
-
-                                    onChanged: (value) {
-                                      setState(() {
-                                        if (isValidInput)
-                                          isTaxIdError = value.trim().isEmpty;
-                                      });
-                                    },
-                                    onSaved: (value) {
-                                      taxIdController.text = value!;
-                                    },
-                                  ),
-                                  if (isTaxIdError)
-                                    Padding(
-                                      padding: EdgeInsets.only(top: 4.h),
-                                      child: Align(
-                                        alignment: Alignment.centerRight,
-                                        child: Text(
-                                          'Mã số thuế không được để trống',
-                                          style: TextStyle(
-                                            color: Color(0xFFFF0000),
-                                            fontWeight: FontWeight.w400,
-                                            fontSize: 12.sp,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
+                            // Mã số thuế
+                            CustomTextFormField(
+                              label: 'Mã số thuế',
+                              controller: taxIdController,
+                              hintText: 'Mã số thuế',
+                              isError: isTaxIdError,
+                              errorMessage: 'Mã số thuế không được để trống',
+                              obscureText: false,
+                              suffixIcon: IconButton(
+                                icon: SvgPicture.asset(
+                                  AppImages.closeCircle.path,
+                                  width: 24.w,
+                                  height: 24.w,
+                                ),
+                                onPressed: () {
+                                  taxIdController.clear();
+                                  if (isValidInput) {
+                                    setState(() => isTaxIdError = true);
+                                  }
+                                },
                               ),
-                            ),
-
-                            SizedBox(height: 4),
-                            SizedBox(
-                              height: 106.h,
-                              width: 343.w,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  TextCustom(text: "Tài khoản"),
-
-                                  TextFormField(
-                                    controller: usernameController,
-                                    decoration: InputDecoration(
-                                      hintText: 'Tài khoản',
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          6.r,
-                                        ),
-                                        borderSide: BorderSide(
-                                          color: Color(0xFFEBECED),
-                                          width: 1,
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          6.r,
-                                        ),
-                                        borderSide: BorderSide(
-                                          color: Color(
-                                            0xFFF24E1E,
-                                          ), // màu viền khi focus (nhập vào)
-                                          width: 2,
-                                        ),
-                                      ),
-                                      errorBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          6.r,
-                                        ),
-                                        borderSide: BorderSide(
-                                          color: Colors.red,
-                                          width: 1,
-                                        ), // bo góc luôn, không underline
-                                      ),
-                                      focusedErrorBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          6.r,
-                                        ),
-                                        borderSide: BorderSide(
-                                          color: Colors.red,
-                                          width: 2,
-                                        ),
-                                      ),
-                                    ),
-                                    validator: (value) {
-                                      if (value == null ||
-                                          value.trim().isEmpty) {
-                                        return null; // trả về chuỗi rỗng để Flutter không tự show lỗi
-                                      }
-                                      return null;
-                                    },
-
-                                    onChanged: (value) {
-                                      setState(() {
-                                        if (isValidInput)
-                                          isUsernameError =
-                                              value.trim().isEmpty;
-                                      });
-                                    },
-
-                                    onSaved: (value) {
-                                      usernameController.text = value!;
-                                    },
-                                  ),
-
-                                  if (isUsernameError)
-                                    Padding(
-                                      padding: EdgeInsets.only(top: 4.h),
-                                      child: Align(
-                                        alignment: Alignment.centerRight,
-                                        child: Text(
-                                          'Tài khoản không được để trống',
-                                          style: TextStyle(
-                                            color: Color(0xFFFF0000),
-                                            fontWeight: FontWeight.w400,
-                                            fontSize: 12.sp,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
+                              validator: (_) => null,
+                              onChanged: (v) {
+                                if (isValidInput) {
+                                  setState(
+                                    () => isTaxIdError = v.trim().isEmpty,
+                                  );
+                                }
+                              },
+                              onSaved: (v) => taxIdController.text = v!,
                             ),
 
                             SizedBox(height: 4.h),
-                            SizedBox(
-                              height: 106.h,
-                              width: 343.w,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  TextCustom(text: "Mật khẩu"),
 
-                                  TextFormField(
-                                    controller: passwordController,
-                                    obscureText: isObscure, // cực kỳ quan trọng
-                                    decoration: InputDecoration(
-                                      hintText: 'Mật khẩu',
-                                      enabledBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          6.r,
-                                        ),
-                                        borderSide: BorderSide(
-                                          color: Color(0xFFEBECED),
-                                          width: 1,
-                                        ),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          6.r,
-                                        ),
-                                        borderSide: BorderSide(
-                                          color: Color(0xFFF24E1E),
-                                          width: 2,
-                                        ),
-                                      ),
-                                      errorBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          6.r,
-                                        ),
-                                        borderSide: BorderSide(
-                                          color: Colors.red,
-                                          width: 1,
-                                        ), // bo góc luôn, không underline
-                                      ),
-                                      focusedErrorBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(
-                                          6.r,
-                                        ),
-                                        borderSide: BorderSide(
-                                          color: Colors.red,
-                                          width: 2,
-                                        ),
-                                      ),
-                                      suffixIcon: IconButton(
-                                        icon: isObscure ? eyeSplash : eye,
-                                        onPressed: () {
-                                          setState(() {
-                                            isObscure = !isObscure;
-                                          });
-                                        },
-                                      ),
-                                    ),
-                                    validator: (value) {
-                                      if (value == null ||
-                                          value.trim().isEmpty ||
-                                          value.trim().length < 8 ||
-                                          value.trim().length > 50) {
-                                        return null; // Có lỗi thì trả về chuỗi rỗng
-                                      }
-                                      return null; // Không lỗi// hợp lệ thì không lỗi
-                                    },
-                                    onChanged: (value) {
-                                      setState(() {
-                                        if (isValidInput)
-                                          isPasswordError =
-                                              value.trim().isEmpty ||
-                                              value.trim().length < 8 ||
-                                              value.trim().length > 50;
-                                      });
-                                    },
-
-                                    onSaved: (value) {
-                                      passwordController.text = value!;
-                                    },
-                                  ),
-
-                                  if (isPasswordError)
-                                    Padding(
-                                      padding: EdgeInsets.only(top: 4.h),
-                                      child: Align(
-                                        alignment: Alignment.centerRight,
-                                        child: Text(
-                                          'Mật khẩu phải từ 8 đến 50 ký tự',
-                                          style: TextStyle(
-                                            color: Color(0xFFFF0000),
-                                            fontWeight: FontWeight.w400,
-                                            fontSize: 12.sp,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
+                            // Tài khoản
+                            CustomTextFormField(
+                              label: 'Tài khoản',
+                              controller: usernameController,
+                              hintText: 'Tài khoản',
+                              isError: isUsernameError,
+                              errorMessage: 'Tài khoản không được để trống',
+                              obscureText: false,
+                              validator: (_) => null,
+                              onChanged: (v) {
+                                if (isValidInput) {
+                                  setState(
+                                    () => isUsernameError = v.trim().isEmpty,
+                                  );
+                                }
+                              },
+                              onSaved: (v) => usernameController.text = v!,
                             ),
 
-                            SizedBox(height: 20),
+                            SizedBox(height: 4.h),
+
+                            // Mật khẩu
+                            CustomTextFormField(
+                              label: 'Mật khẩu',
+                              controller: passwordController,
+                              hintText: 'Mật khẩu',
+                              isError: isPasswordError,
+                              errorMessage: 'Mật khẩu phải từ 8 đến 50 ký tự',
+                              obscureText: isObscure,
+                              suffixIcon: IconButton(
+                                icon: isObscure ? eyeSlash : eye,
+                                onPressed:
+                                    () =>
+                                        setState(() => isObscure = !isObscure),
+                              ),
+                              validator: (_) => null,
+                              onChanged: (v) {
+                                if (isValidInput) {
+                                  final len = v.trim().length;
+                                  setState(
+                                    () =>
+                                        isPasswordError =
+                                            v.trim().isEmpty ||
+                                            len < 6 ||
+                                            len > 50,
+                                  );
+                                }
+                              },
+                              onSaved: (v) => passwordController.text = v!,
+                            ),
+
+                            SizedBox(height: 20.h),
+
+                            // Nút đăng nhập
                             SizedBox(
                               width: 343.w,
                               height: 54.h,
                               child: ElevatedButton(
-                                onPressed: submitForm,
-
+                                onPressed: isLoading ? null : submitForm,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Color(
-                                    0xFFF24E1E,
-                                  ), // màu nền nút
+                                  backgroundColor: Color(0xFFF24E1E),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(6.r),
                                   ),
-                                  elevation: 0, // nếu muốn không có đổ bóng
+                                  elevation: 0,
                                 ),
-                                child: Text(
-                                  'Đăng nhập',
-                                  style: GoogleFonts.nunitoSans(
-                                    textStyle: TextStyle(
-                                      color: Color(0xFFFFFFFF),
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.w700,
-                                      height: 1.5,
-                                    ),
-                                  ),
-                                ),
+                                child:
+                                    isLoading
+                                        ? CircularProgressIndicator(
+                                          color: Colors.white,
+                                        )
+                                        : Text(
+                                          'Đăng nhập',
+                                          style: GoogleFonts.nunitoSans(
+                                            textStyle: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16.sp,
+                                              fontWeight: FontWeight.w700,
+                                              height: 1.5,
+                                            ),
+                                          ),
+                                        ),
                               ),
                             ),
                           ],
@@ -438,6 +282,8 @@ class _LogInState extends State<LogIn> {
                 ),
               ),
             ),
+
+            // Thanh nút dưới cùng
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
               child: Row(
@@ -446,19 +292,17 @@ class _LogInState extends State<LogIn> {
                   BottomButton(
                     text: "Trợ giúp",
                     onPressed: () {},
-                    imagePath: Images.headphone.path,
+                    imagePath: AppImages.headphone.path,
                   ),
-
                   BottomButton(
                     text: "Group",
                     onPressed: () {},
-                    imagePath: Images.face.path,
+                    imagePath: AppImages.group.path,
                   ),
-
                   BottomButton(
                     text: "Tra cứu",
                     onPressed: () {},
-                    imagePath: Images.searchNormal.path,
+                    imagePath: AppImages.searchNormal.path,
                   ),
                 ],
               ),
